@@ -1,8 +1,8 @@
 # Exemplar on nsc2108: the quickstart shape (one replica of everything,
 # in-cluster Postgres, default storage class, reviews in the worker pod),
 # reached through a Cloudflare Tunnel since the box has no inbound route.
-# Built from exemplar's own deploy/k8s at a release tag, so upgrading is a
-# tag bump plus the two image digests from that release's install-tunnel.yaml.
+# Built from exemplar's own deploy/k8s at a release tag, so upgrading is
+# bumping that tag and the two image tags below together.
 #
 # Secrets are not in this repo; create them in the exemplar namespace by
 # hand (docs/reference/secrets-and-configmaps.md): exemplar-database,
@@ -41,14 +41,15 @@ spec:
   prune: true
   wait: true
   timeout: 5m
-  # Digests from v0.8.1's install-tunnel.yaml; all zeros fails to pull.
+  # Release tags, matching the GitRepository tag without the "v". A tag
+  # re-pushed for the same release doesn't roll running pods.
   images:
     - name: exemplar
       newName: docker.io/koblas/exemplar
-      digest: sha256:87642adfaa06a2c8218e4f610701b2ad707ea72447efd4c2e2dcb9181b3713b6
+      newTag: "0.8.1"
     - name: exemplar-learning
       newName: docker.io/koblas/exemplar-learning
-      digest: sha256:304d143e7882a2fdf70cc818ac225cc85f462c344c519871c950915deca1a183
+      newTag: "0.8.1"
   # Mirrors examples/k8s/quickstart at v0.8.1.
   patches:
     - patch: |-
