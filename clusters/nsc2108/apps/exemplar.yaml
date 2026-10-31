@@ -1,0 +1,81 @@
+# Exemplar on nsc2108: the quickstart shape (one replica of everything,
+# in-cluster Postgres, default storage class, reviews in the worker pod),
+# reached through a Cloudflare Tunnel since the box has no inbound route.
+# Built from exemplar's own deploy/k8s at a release tag, so upgrading is a
+# tag bump plus the two image digests from that release's install-tunnel.yaml.
+#
+# Secrets are not in this repo; create them in the exemplar namespace by
+# hand (docs/reference/secrets-and-configmaps.md): exemplar-database,
+# exemplar-root-key, exemplar-providers, exemplar-cloudflared. The setup
+# page writes exemplar-github-app. Until they exist the rollout won't go
+# Ready.
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: exemplar
+  namespace: flux-system
+spec:
+  interval: 1h
+  url: https://github.com/koblas/exemplar.git
+  ref:
+    tag: v0.6.0
+  # Only the manifests, not the whole repo.
+  ignore: |
+    /*
+    !/deploy/k8s/
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: exemplar
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: exemplar
+  path: ./deploy/k8s/base
+  components:
+    - ../components/postgres
+  prune: true
+  wait: true
+  timeout: 5m
+  # Digests from v0.6.0's install-tunnel.yaml; all zeros fails to pull.
+  images:
+    - name: exemplar
+      newName: docker.io/koblas/exemplar
+      digest: sha256:0b27d66c9b54e92aa7be5fa93d844c07a035a7ee45699369f78e29f629633382
+    - name: exemplar-learning
+      newName: docker.io/koblas/exemplar
+      digest: sha256:777a5be44dc5746092cf7e21a524876d095e89cdacd5fb99a827ac96d204cc86
+  # Mirrors examples/k8s/quickstart at v0.6.0.
+  patches:
+    - patch: |-
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: exemplar-settings
+          namespace: exemplar
+        data:
+          EXEMPLAR_CONFIG_REPO: "koblas/exemplar-config-development"
+          EXEMPLAR_API_URL: "https://exemplar.koblas.com"
+    - target: {kind: Deployment, name: "exemplar-(api|webhook|gateway|worker|cloudflared)"}
+      patch: |-
+        - {op: replace, path: /spec/replicas, value: 1}
+    - target: {kind: StatefulSet, name: exemplar-search}
+      patch: |-
+        - {op: replace, path: /spec/replicas, value: 1}
+        - {op: remove, path: /spec/volumeClaimTemplates/0/spec/storageClassName}
+        - {op: replace, path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage, value: 20Gi}
+        - {op: replace, path: /spec/template/spec/containers/0/resources, value: {requests: {cpu: 500m, memory: 2Gi}, limits: {cpu: "2", memory: 8Gi}}}
+    # args/7 is --launcher and args/8 --runner-quota (exemplar's
+    # deploy/manifests_test.go checks the indexes); recheck on upgrade.
+    - target: {kind: Deployment, name: exemplar-worker}
+      patch: |-
+        - {op: replace, path: /spec/template/spec/containers/0/args/7, value: --launcher=in-process}
+        - {op: replace, path: /spec/template/spec/containers/0/args/8, value: --runner-quota=0}
+        - {op: replace, path: /spec/template/spec/containers/0/resources, value: {requests: {cpu: 500m, memory: 1Gi, ephemeral-storage: 5Gi}, limits: {cpu: "2", memory: 4Gi, ephemeral-storage: 20Gi}}}
+    - target: {kind: StatefulSet, name: exemplar-postgres}
+      patch: |-
+        - {op: replace, path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage, value: 10Gi}
