@@ -19,7 +19,7 @@ spec:
   interval: 1h
   url: https://github.com/koblas/exemplar.git
   ref:
-    tag: v0.6.0
+    tag: v0.8.1
   # Only the manifests, not the whole repo.
   ignore: |
     /*
@@ -41,15 +41,15 @@ spec:
   prune: true
   wait: true
   timeout: 5m
-  # Digests from v0.6.0's install-tunnel.yaml; all zeros fails to pull.
+  # Digests from v0.8.1's install-tunnel.yaml; all zeros fails to pull.
   images:
     - name: exemplar
       newName: docker.io/koblas/exemplar
-      digest: sha256:0b27d66c9b54e92aa7be5fa93d844c07a035a7ee45699369f78e29f629633382
+      digest: sha256:87642adfaa06a2c8218e4f610701b2ad707ea72447efd4c2e2dcb9181b3713b6
     - name: exemplar-learning
-      newName: docker.io/koblas/exemplar
-      digest: sha256:777a5be44dc5746092cf7e21a524876d095e89cdacd5fb99a827ac96d204cc86
-  # Mirrors examples/k8s/quickstart at v0.6.0.
+      newName: docker.io/koblas/exemplar-learning
+      digest: sha256:304d143e7882a2fdf70cc818ac225cc85f462c344c519871c950915deca1a183
+  # Mirrors examples/k8s/quickstart at v0.8.1.
   patches:
     - patch: |-
         apiVersion: v1
@@ -69,10 +69,12 @@ spec:
         - {op: remove, path: /spec/volumeClaimTemplates/0/spec/storageClassName}
         - {op: replace, path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage, value: 20Gi}
         - {op: replace, path: /spec/template/spec/containers/0/resources, value: {requests: {cpu: 500m, memory: 2Gi}, limits: {cpu: "2", memory: 8Gi}}}
-    # args/7 is --launcher and args/8 --runner-quota (exemplar's
-    # deploy/manifests_test.go checks the indexes); recheck on upgrade.
+    # args/7 is --launcher and args/8 --runner-quota; the test ops fail the
+    # build if a release moves them, rather than overwrite another flag.
     - target: {kind: Deployment, name: exemplar-worker}
       patch: |-
+        - {op: test, path: /spec/template/spec/containers/0/args/7, value: --launcher=kubernetes}
+        - {op: test, path: /spec/template/spec/containers/0/args/8, value: --runner-quota=8}
         - {op: replace, path: /spec/template/spec/containers/0/args/7, value: --launcher=in-process}
         - {op: replace, path: /spec/template/spec/containers/0/args/8, value: --runner-quota=0}
         - {op: replace, path: /spec/template/spec/containers/0/resources, value: {requests: {cpu: 500m, memory: 1Gi, ephemeral-storage: 5Gi}, limits: {cpu: "2", memory: 4Gi, ephemeral-storage: 20Gi}}}
