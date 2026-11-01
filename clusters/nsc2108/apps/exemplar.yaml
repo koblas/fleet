@@ -19,7 +19,7 @@ spec:
   interval: 1h
   url: https://github.com/koblas/exemplar.git
   ref:
-    tag: v0.8.1
+    tag: v0.9.0
   # Only the manifests, not the whole repo.
   ignore: |
     /*
@@ -46,11 +46,11 @@ spec:
   images:
     - name: exemplar
       newName: docker.io/koblas/exemplar
-      newTag: "0.8.1"
+      newTag: "0.9.0"
     - name: exemplar-learning
       newName: docker.io/koblas/exemplar-learning
-      newTag: "0.8.1"
-  # Mirrors examples/k8s/quickstart at v0.8.1.
+      newTag: "0.9.0"
+  # Mirrors examples/k8s/quickstart at v0.9.0.
   patches:
     - patch: |-
         apiVersion: v1
