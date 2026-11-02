@@ -18,7 +18,7 @@ metadata:
   name: exemplar
   namespace: flux-system
 spec:
-  interval: 10m
+  interval: 2m
   url: oci://ghcr.io/koblas/exemplar-manifests
   # To hold a version instead, use tag: "0.10.0" or semver: "0.10.x".
   ref:
