@@ -5,8 +5,8 @@
 # version bump here.
 #
 # Chart defaults otherwise: read-only ClusterRole (no Helm writes, Secrets,
-# RBAC or webhook reads), in-memory timeline, ClusterIP Service, no ingress,
-# no auth. Open it with:
+# RBAC or webhook reads) plus patch on workloads for restart and scale,
+# in-memory timeline, ClusterIP Service, no ingress, no auth. Open it with:
 #   kubectl port-forward -n radar svc/radar 9280:9280
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
@@ -21,6 +21,13 @@ spec:
   valuesContent: |-
     usageReporting:
       enabled: false
+    # Restart (and scale) merge-patch the workload itself. rbac.helm would
+    # also allow this, but grants write on every resource type.
+    rbac:
+      additionalRules:
+        - apiGroups: ["apps"]
+          resources: ["deployments", "statefulsets", "daemonsets"]
+          verbs: ["patch"]
     # No auth, so keep MCP to its read-only endpoint.
     extraArgs:
       - --mcp-read-only
