@@ -1,0 +1,22 @@
+# Radar from ./apps/radar, in its own Kustomization so that a missing
+# HelmChart CRD (k3s started with --disable-helm-controller) fails only this,
+# not the flux-system sync that carries everything else.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: radar
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/radar
+  prune: true
+  timeout: 5m
+  # The HelmChart reports nothing about the rollout; wait on what it installs.
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: radar
+      namespace: radar

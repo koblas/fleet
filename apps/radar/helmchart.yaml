@@ -1,0 +1,26 @@
+# Radar (https://github.com/skyhook-io/radar), installed by k3s's built-in
+# helm-controller rather than Flux's, which nsc2108 doesn't run. Flux only
+# applies this object; k3s runs helm install/upgrade in a short-lived job
+# whenever the spec changes. It never re-polls the repo, so upgrading is a
+# version bump here.
+#
+# Chart defaults otherwise: read-only ClusterRole (no Helm writes, Secrets,
+# RBAC or webhook reads), in-memory timeline, ClusterIP Service, no ingress,
+# no auth. Open it with:
+#   kubectl port-forward -n radar svc/radar 9280:9280
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: radar
+  namespace: kube-system
+spec:
+  repo: https://skyhook-io.github.io/helm-charts
+  chart: radar
+  version: 1.19.0
+  targetNamespace: radar
+  valuesContent: |-
+    usageReporting:
+      enabled: false
+    # No auth, so keep MCP to its read-only endpoint.
+    extraArgs:
+      - --mcp-read-only
