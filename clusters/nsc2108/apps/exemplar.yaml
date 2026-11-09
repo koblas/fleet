@@ -6,11 +6,12 @@
 # artifact and moves `latest` onto it. Manifests and images change together,
 # so every workload rolls on the next poll after a release.
 #
-# Secrets are not in this repo; create them in the exemplar namespace by
-# hand (docs/reference/secrets-and-configmaps.md): exemplar-database,
-# exemplar-root-key, exemplar-providers, exemplar-cloudflared. The setup
-# page writes exemplar-github-app. Until they exist the rollout won't go
-# Ready.
+# No secret values are in this repo. The release declares the Secrets that
+# exemplar-api's setup page (https://exemplar.koblas.com/setup) fills, empty,
+# and setup writes the database password, GitHub App, model keys and root
+# key into them; until it finishes only exemplar-api and Postgres go Ready.
+# The setup token is in the exemplar-setup Secret. exemplar-cloudflared, the
+# tunnel's credentials, is the one created by hand (quickstart step 4).
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: OCIRepository
@@ -73,3 +74,14 @@ spec:
     - target: {kind: StatefulSet, name: exemplar-postgres}
       patch: |-
         - {op: replace, path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage, value: 10Gi}
+    # The declared Secrets carry no data, so applying them leaves what setup
+    # wrote, but pruning one deletes it with the App key or database password
+    # inside. Keep them if a release drops one or this Kustomization goes.
+    - target: {kind: Secret, labelSelector: app.kubernetes.io/part-of=exemplar}
+      patch: |-
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: any
+          annotations:
+            kustomize.toolkit.fluxcd.io/prune: disabled
