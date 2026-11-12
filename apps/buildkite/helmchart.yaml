@@ -9,7 +9,11 @@
 # cluster's agent token (the org and cluster are inferred from it):
 #   kubectl -n buildkite create secret generic buildkite-agent-token \
 #     --from-literal=BUILDKITE_AGENT_TOKEN=<cluster agent token>
-# Until it exists the controller won't start.
+# Until it exists the controller won't start. Checkouts of private repos
+# also need the SSH key Secret:
+#   kubectl -n buildkite create secret generic git-ssh-credentials \
+#     --from-file=SSH_PRIVATE_ED25519_KEY=<private key file>
+# Flux doesn't prune either: it only deletes what it applied.
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
@@ -27,3 +31,10 @@ spec:
         - queue=kubernetes
       # One node: run at most four jobs at once (the chart allows 100).
       max-in-flight: 4
+      # Every job's checkout container gets the deploy key for private
+      # repos, as SSH_PRIVATE_ED25519_KEY from the git-ssh-credentials
+      # Secret (made by hand, like the token).
+      default-checkout-params:
+        envFrom:
+          - secretRef:
+              name: git-ssh-credentials
