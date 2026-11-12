@@ -1,0 +1,29 @@
+# Buildkite agent-stack-k8s
+# (https://buildkite.com/docs/agent/self-hosted/agent-stack-k8s), installed
+# by k3s's built-in helm-controller like Radar. The controller polls
+# Buildkite for jobs on its queue and runs each one as a Kubernetes Job in
+# the buildkite namespace; its Role reaches nothing outside it. Upgrading is
+# a version bump here.
+#
+# The agent token is not in this repo. Create it by hand from a Buildkite
+# cluster's agent token (the org and cluster are inferred from it):
+#   kubectl -n buildkite create secret generic buildkite-agent-token \
+#     --from-literal=BUILDKITE_AGENT_TOKEN=<cluster agent token>
+# Until it exists the controller won't start.
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: agent-stack-k8s
+  namespace: kube-system
+spec:
+  chart: oci://ghcr.io/buildkite/helm/agent-stack-k8s
+  version: 0.53.1
+  targetNamespace: buildkite
+  valuesContent: |-
+    agentStackSecret: buildkite-agent-token
+    config:
+      # Pipelines target this with `agents: {queue: kubernetes}`.
+      tags:
+        - queue=kubernetes
+      # One node: run at most four jobs at once (the chart allows 100).
+      max-in-flight: 4

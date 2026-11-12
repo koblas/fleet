@@ -1,0 +1,21 @@
+# Buildkite's agent-stack-k8s from ./apps/buildkite, in its own Kustomization
+# for the same reason as Radar: a missing HelmChart CRD fails only this.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: buildkite
+  namespace: flux-system
+spec:
+  interval: 10m
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  path: ./apps/buildkite
+  prune: true
+  timeout: 5m
+  # The HelmChart reports nothing about the rollout; wait on what it installs.
+  healthChecks:
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: agent-stack-k8s
+      namespace: buildkite
