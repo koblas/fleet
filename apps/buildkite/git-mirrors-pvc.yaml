@@ -1,0 +1,21 @@
+# Bare mirrors of the repositories Buildkite jobs check out, shared by every
+# job pod (see gitMirrors in helmchart.yaml). Each job's checkout clones from
+# the mirror on local disk and fetches only new commits over the uplink.
+#
+# No storageClassName: the cluster default (k3s local-path) provisions it on
+# the one node. ReadWriteOnce is per node, not per pod, so concurrent jobs
+# mount it together; a second node would need a ReadWriteMany class instead.
+#
+# The contents are a cache. Deleting the claim costs one full clone per
+# repository on the next job.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: buildkite-git-mirrors
+  namespace: buildkite
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
