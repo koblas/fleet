@@ -38,3 +38,20 @@ spec:
         envFrom:
           - secretRef:
               name: git-ssh-credentials
+        # Clone from a bare mirror kept on the buildkite-git-mirrors claim
+        # (git-mirrors-pvc.yaml), so a job fetches only commits the mirror
+        # lacks. The chart mounts the volume into the checkout container
+        # only, at /buildkite/git-mirrors.
+        gitMirrors:
+          volume:
+            name: git-mirrors
+            persistentVolumeClaim:
+              claimName: buildkite-git-mirrors
+          # Seconds a job waits for another job's mirror update. The first
+          # fill of a mirror is a full clone over the uplink, and jobs that
+          # start beside it queue on this lock.
+          lockTimeout: 1800
+        # --dissociate copies the objects out of the mirror instead of
+        # pointing at it: the command containers do not mount the mirror,
+        # and git there would fail on a checkout that borrows from it.
+        cloneFlags: "-v --dissociate"
