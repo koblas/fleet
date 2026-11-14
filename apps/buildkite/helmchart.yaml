@@ -54,4 +54,10 @@ spec:
         # --dissociate copies the objects out of the mirror instead of
         # pointing at it: the command containers do not mount the mirror,
         # and git there would fail on a checkout that borrows from it.
-        cloneFlags: "-v --dissociate"
+        #
+        # core.commitGraph=false: once a mirror update writes a commit-graph
+        # into the mirror, git fails a --dissociate --reference clone at
+        # checkout with "unable to parse commit <HEAD>". -c sets it in the
+        # new repository before the fetch, so the clone never reads the
+        # mirror's graph.
+        cloneFlags: "-v --dissociate -c core.commitGraph=false"
